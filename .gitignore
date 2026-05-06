@@ -1,0 +1,10 @@
+.env
+*.test
+*.out
+bin/
+dist/
+coverage.txt
+filtered_coverage.txt
+.DS_Store
+.idea/
+.vscode/

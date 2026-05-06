@@ -1,0 +1,67 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: demo-postgres
+    environment:
+      POSTGRES_USER: demo
+      POSTGRES_PASSWORD: demo
+      POSTGRES_DB: demo
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U demo"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  pgadmin:
+    image: dpage/pgadmin4:9.14.0
+    container_name: demo-pgadmin
+    user: root
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
+      PGADMIN_DISABLE_POSTFIX: "true"
+    ports:
+      - "5050:80"
+    volumes:
+      - "./pgadmin/servers.json:/pgadmin4/servers.json:ro"
+      - "./pgadmin/pgpass:/tmp/pgpass.src:ro"
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        cp /tmp/pgpass.src /pgpass && \
+        chmod 0600 /pgpass && \
+        chown pgadmin /pgpass && \
+        exec /entrypoint.sh
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  localstack:
+    image: localstack/localstack:4
+    container_name: demo-localstack
+    environment:
+      SERVICES: sns,sqs
+      DEFAULT_REGION: us-east-1
+      AWS_DEFAULT_REGION: us-east-1
+    ports:
+      - "4566:4566"
+    volumes:
+      - "./localstack/localstack-init.sh:/etc/localstack/init/ready.d/init.sh"
+
+  wiremock:
+    image: wiremock/wiremock:3.11.0
+    container_name: demo-wiremock
+    ports:
+      - "8081:8080"
+    volumes:
+      - "./wiremock/mappings:/home/wiremock/mappings"
+
+volumes:
+  postgres-data:
